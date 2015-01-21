@@ -1,0 +1,50 @@
+#!/bin/bash
+
+QUALITY=85
+SIZE=800x600
+LOCAL_IMAGES=~/Desktop/webcams/images
+SERVER_USER=ghall@210.48.44.156
+CAPTURE_RATE=3s
+
+clear 
+
+captureImage ()
+{
+	if webcamExists $1
+	then
+		echo "Webcam $1 fired"
+		nohup streamer -c /dev/video$1 -f jpeg -s $SIZE -j $QUALITY -o ~/Desktop/webcams/images/cam$1-tmp.jpeg 1>/dev/null 2>/dev/null
+		sendImageToServer $1
+	else
+		echo $1 "not found"
+	fi
+}
+
+webcamExists ()
+{
+	if [ -e /dev/video$1 ]
+	then
+	 	return 0
+	else
+		return 1
+	fi
+}
+
+sendImageToServer ()
+{
+	nohup scp $LOCAL_IMAGES/cam$1-tmp.jpeg $SERVER_USER:/var/www/html/webcams/webcam-images/cam$1-tmp.jpeg 1>/dev/null 2>/dev/null
+	nohup ssh -n $SERVER_USER mv /var/www/html/webcams/webcam-images/cam$1-tmp.jpeg /var/www/html/webcams/webcam-images/cam$1.jpeg 1>/dev/null 2>/dev/null 
+	echo "File uploaded for webcam $1 at $(date)"
+	echo " " 
+}
+
+while true
+do
+sleep $CAPTURE_RATE	
+	captureImage 0 
+	captureImage 1 
+	captureImage 2
+	echo " "
+	echo "####################################################"
+	echo " "
+done
